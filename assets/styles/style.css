@@ -1,0 +1,26 @@
+*{
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+body{
+    background-color: thistle;
+}
+
+a {
+    text-decoration: none;
+}
+
+.nav-bg{
+    background-color: #8C61D6;
+}
+
+.btn-bg-color{
+    background-color: #8C61D6;
+    color:white
+}
+
+.btn-bg-color-light{
+    background-color: thistle;
+}
