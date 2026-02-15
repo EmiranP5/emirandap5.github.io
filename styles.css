@@ -1,0 +1,658 @@
+/* ============================================================
+   San Valentín — Galaxia Romántica Ultra
+   Mobile-first · Accesible · Cinematográfico
+   ============================================================ */
+
+/* ---------- CSS CUSTOM PROPERTIES ---------- */
+:root {
+  --gx-accent: #a78bfa;
+  --gx-accent-rgb: 167,139,250;
+  --gx-purple-rgb: 140,60,200;
+  --gx-deep: #020208;
+  --gx-text: #e2d8f5;
+}
+
+/* ---------- RESET ---------- */
+*,*::before,*::after { box-sizing: border-box; }
+
+body {
+  font-family: 'Arial', sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* ==========================================
+   PANTALLA INICIAL
+   ========================================== */
+.screen-initial {
+  background-color: #FFC2D1;
+  color: #d32f2f;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  overflow-y: auto;
+  transition: opacity .8s ease, transform .8s ease;
+}
+.screen-initial.hidden {
+  opacity: 0;
+  transform: scale(1.04);
+  pointer-events: none;
+}
+
+.container {
+  background-color: #fff;
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 4px 10px rgba(0,0,0,.2);
+  position: relative;
+  max-width: 90%;
+  width: 800px;
+  margin: 20px 0;
+}
+h1 { font-size: 2.5rem; margin-bottom: 20px; }
+p   { font-size: 1.2rem; margin: 10px 0; }
+.question { font-size: 1.5rem; font-weight: bold; margin: 20px 0; }
+.buttons  { margin-top: 20px; display: flex; justify-content: center; gap: 20px; }
+
+button {
+  font-size: 1.2rem;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform .2s ease;
+}
+#yesButton { background-color: #d32f2f; color: #fff; }
+#noButton  { background-color: #f5f5f5; color: #d32f2f; transition: transform .5s ease; z-index: 1000; }
+button:hover { transform: scale(1.1); }
+
+#response { font-size: 1.2rem; font-weight: bold; margin-top: 20px; color: #d32f2f; }
+#imageContainer { margin-top: 20px; }
+#imageContainer img { max-width: 200px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,.2); margin-top: 10px; }
+
+/* ---------- MODO OSCURO ---------- */
+body.dark-mode .screen-initial   { background-color: #1a1a1a; color: #fff; }
+body.dark-mode .container        { background-color: #333; color: #fff; }
+body.dark-mode #yesButton        { background-color: #ff4d4d; }
+body.dark-mode #noButton         { background-color: #666; color: #fff; }
+body.dark-mode #imageContainer img { box-shadow: 0 4px 10px rgba(255,255,255,.2); }
+body.dark-mode #response         { color: #ff6b6b; }
+
+/* ==========================================
+   PANTALLA GALAXIA
+   ========================================== */
+.screen-galaxy {
+  position: fixed;
+  inset: 0;
+  background-color: var(--gx-deep);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 2000;
+  /* Salida rápida */
+  transition: opacity .6s ease, visibility 0s .6s;
+}
+.screen-galaxy.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  /* Entrada cinematográfica */
+  transition: opacity 1.2s ease, visibility 0s 0s;
+}
+
+/* --- Capa atmosférica CSS (gradientes animados, blend screen) --- */
+.screen-galaxy::before {
+  content: '';
+  position: absolute;
+  inset: -25%;
+  width: 150%;
+  height: 150%;
+  background:
+    radial-gradient(ellipse at 20% 30%, rgba(var(--gx-purple-rgb),.04) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 65%, rgba(40,70,180,.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 85%, rgba(220,60,130,.02) 0%, transparent 45%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: 1;
+  animation: cssDriftEnhanced 25s ease-in-out infinite alternate;
+}
+@keyframes cssDrift {
+  0%   { transform: translate(0,0) scale(1) rotate(0deg); }
+  100% { transform: translate(25px,-12px) scale(1.06) rotate(1deg); }
+}
+@keyframes cssDriftEnhanced {
+  0%   { transform: translate(0,0) scale(1) rotate(0deg); }
+  33%  { transform: translate(-18px, 25px) scale(1.04) rotate(-0.5deg); }
+  67%  { transform: translate(30px, -15px) scale(1.08) rotate(0.8deg); }
+  100% { transform: translate(-12px, 8px) scale(1.05) rotate(-0.3deg); }
+}
+
+/* ---------- CANVAS ---------- */
+#galaxyCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  display: block;
+  cursor: crosshair; /* Indica interactividad precisa - el usuario puede mover la galaxia */
+}
+
+/* ---------- OVERLAY ---------- */
+.galaxy-overlay {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* --- Título — entrada + glow pulsante --- */
+.galaxy-title {
+  font-size: 1.8rem;
+  color: #fff;
+  text-shadow: 0 0 20px rgba(var(--gx-accent-rgb),.5), 0 0 40px rgba(var(--gx-accent-rgb),.25);
+  margin: 0 0 20px 0;
+  opacity: 0;
+  transform: translateY(-30px) scale(.9);
+  transition: opacity .5s ease, transform .5s ease;
+}
+.screen-galaxy.active .galaxy-title {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition: opacity 1s ease 1.2s, transform 1s ease 1.2s;
+  animation: titlePulse 5s ease-in-out 2.5s infinite;
+}
+@keyframes titlePulse {
+  0%,100% {
+    text-shadow: 0 0 20px rgba(var(--gx-accent-rgb),.4), 0 0 40px rgba(var(--gx-accent-rgb),.2);
+    filter: brightness(1);
+  }
+  50% {
+    text-shadow: 0 0 30px rgba(var(--gx-accent-rgb),.65), 0 0 60px rgba(var(--gx-accent-rgb),.3), 0 0 90px rgba(var(--gx-purple-rgb),.12);
+    filter: brightness(1.12);
+  }
+}
+
+/* ---------- CARRUSEL ---------- */
+.carousel-container {
+  position: relative;
+  background: rgba(8,8,35,.55);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 20px;
+  padding: 16px;
+  max-width: 460px;
+  width: 90%;
+  opacity: 0;
+  transform: translateY(30px) scale(.96);
+  transition: opacity .5s ease, transform .5s ease;
+}
+.screen-galaxy.active .carousel-container {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition: opacity 1s ease 1.8s, transform 1s ease 1.8s;
+  animation: containerGlow 6s ease-in-out 3.5s infinite;
+}
+@keyframes containerGlow {
+  0%,100% {
+    box-shadow:
+      0 0 25px rgba(var(--gx-accent-rgb),.06),
+      0 0 50px rgba(var(--gx-purple-rgb),.03),
+      inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  50% {
+    box-shadow:
+      0 0 40px rgba(var(--gx-accent-rgb),.13),
+      0 0 80px rgba(var(--gx-purple-rgb),.05),
+      0 0 120px rgba(var(--gx-purple-rgb),.02),
+      inset 0 1px 0 rgba(255,255,255,.08);
+  }
+}
+
+/* Viewport */
+.carousel-viewport {
+  position: relative;
+  width: 100%;
+  height: 280px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: rgba(0,0,0,.3);
+}
+.carousel-viewport::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  box-shadow: inset 0 0 25px rgba(0,0,0,.35);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Slide */
+.carousel-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: scale(.97);
+  transition: opacity .6s ease, transform .6s ease;
+  pointer-events: none;
+}
+.carousel-slide.active {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+.carousel-slide::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,.3) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Imagen */
+.carousel-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  border-radius: 12px;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Flechas */
+.carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255,255,255,.12);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .3s, transform .2s, box-shadow .3s;
+  z-index: 5;
+  padding: 0;
+  line-height: 1;
+}
+.carousel-arrow:hover,
+.carousel-arrow:focus-visible {
+  background: rgba(255,255,255,.25);
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: 0 0 15px rgba(var(--gx-accent-rgb),.2);
+}
+.carousel-arrow:active { transform: translateY(-50%) scale(.95); }
+.carousel-prev { left: -14px; }
+.carousel-next { right: -14px; }
+
+/* Texto / frase */
+.carousel-text {
+  color: var(--gx-text);
+  font-size: 1.05rem;
+  text-align: center;
+  margin: 16px 0 8px 0;
+  min-height: 48px;
+  line-height: 1.5;
+  text-shadow: 0 2px 12px rgba(0,0,0,.6);
+  max-width: 460px;
+  width: 90%;
+  opacity: 0;
+  transition: opacity .5s ease;
+}
+.screen-galaxy.active .carousel-text {
+  opacity: 1;
+  transition: opacity .9s ease 2.3s;
+}
+.carousel-text.ready {
+  transition: opacity .3s ease !important;
+}
+
+/* Dots */
+.carousel-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+  opacity: 0;
+  transition: opacity .5s ease;
+}
+.screen-galaxy.active .carousel-dots {
+  opacity: 1;
+  transition: opacity .8s ease 2.6s;
+}
+.carousel-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,.25);
+  cursor: pointer;
+  padding: 0;
+  transition: background .3s, transform .3s, box-shadow .3s;
+}
+.carousel-dot.active {
+  background: var(--gx-accent);
+  transform: scale(1.3);
+  box-shadow: 0 0 10px rgba(var(--gx-accent-rgb),.5);
+}
+.carousel-dot:hover,
+.carousel-dot:focus-visible { background: rgba(255,255,255,.55); }
+
+/* Botón Volver */
+.btn-back {
+  margin-top: 24px;
+  background: rgba(255,255,255,.08);
+  color: rgba(255,255,255,.7);
+  border: 1px solid rgba(255,255,255,.15);
+  padding: 12px 32px;
+  border-radius: 30px;
+  font-size: 1rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: background .3s, color .3s, transform .2s, box-shadow .3s, opacity .5s ease;
+}
+.screen-galaxy.active .btn-back {
+  opacity: 1;
+  transition: background .3s, color .3s, transform .2s, box-shadow .3s, opacity .8s ease 3s;
+}
+.btn-back:hover,
+.btn-back:focus-visible {
+  background: rgba(255,255,255,.16);
+  color: #fff;
+  box-shadow: 0 0 20px rgba(var(--gx-accent-rgb),.12);
+}
+.btn-back:active { transform: scale(.96); }
+
+/* ---------- FOCUS ---------- */
+:focus-visible { outline: 2px solid var(--gx-accent); outline-offset: 3px; }
+
+/* ---------- RESPONSIVE ---------- */
+@media (min-width:768px) {
+  .galaxy-title { font-size: 2.4rem; }
+  .carousel-container { max-width: 520px; padding: 20px; }
+  .carousel-viewport { height: 380px; }
+  .carousel-text { font-size: 1.2rem; }
+  .carousel-prev { left: -20px; }
+  .carousel-next { right: -20px; }
+}
+@media (min-width:1024px) {
+  .galaxy-title { font-size: 2.8rem; }
+  .carousel-container { max-width: 580px; padding: 24px; }
+  .carousel-viewport { height: 420px; }
+  .carousel-arrow { width: 48px; height: 48px; font-size: 1.4rem; }
+  .carousel-text { font-size: 1.3rem; }
+}
+
+/* ---------- PREFERS REDUCED MOTION ---------- */
+@media (prefers-reduced-motion:reduce) {
+  .screen-galaxy::before { animation: none !important; }
+  .screen-galaxy,
+  .screen-initial,
+  .galaxy-title,
+  .carousel-container,
+  .carousel-text,
+  .carousel-dots,
+  .btn-back,
+  .carousel-slide,
+  .carousel-dot,
+  .carousel-arrow {
+    transition: none !important;
+    animation: none !important;
+  }
+  .screen-galaxy.active { opacity: 1; visibility: visible; }
+  .screen-galaxy.active .galaxy-title,
+  .screen-galaxy.active .carousel-container,
+  .screen-galaxy.active .carousel-text,
+  .screen-galaxy.active .carousel-dots,
+  .screen-galaxy.active .btn-back {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ==========================================
+   TARJETA ROMÁNTICA (MODAL)
+   ========================================== */
+
+/* Overlay */
+.romantic-card-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0s 0.3s;
+  padding: 20px;
+}
+
+.romantic-card-overlay.active {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.3s ease, visibility 0s 0s;
+}
+
+/* Tarjeta */
+.romantic-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(211, 47, 47, 0.2);
+  border-radius: 20px;
+  padding: 40px 30px;
+  max-width: 500px;
+  width: 100%;
+  position: relative;
+  box-shadow:
+    0 20px 60px rgba(211, 47, 47, 0.3),
+    0 0 80px rgba(255, 194, 209, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transform: scale(0.9);
+  transition: transform 0.3s ease;
+}
+
+.romantic-card-overlay.active .romantic-card {
+  transform: scale(1);
+}
+
+/* Dark mode - tarjeta */
+body.dark-mode .romantic-card {
+  background: rgba(51, 51, 51, 0.95);
+  border-color: rgba(255, 77, 77, 0.3);
+  box-shadow:
+    0 20px 60px rgba(255, 77, 77, 0.4),
+    0 0 80px rgba(167, 139, 250, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Botón cerrar */
+.romantic-card-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(211, 47, 47, 0.1);
+  border: 1px solid rgba(211, 47, 47, 0.3);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-size: 24px;
+  color: #d32f2f;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  line-height: 1;
+  padding: 0;
+}
+
+.romantic-card-close:hover {
+  background: rgba(211, 47, 47, 0.2);
+  transform: rotate(90deg);
+}
+
+body.dark-mode .romantic-card-close {
+  background: rgba(255, 77, 77, 0.15);
+  border-color: rgba(255, 77, 77, 0.4);
+  color: #ff4d4d;
+}
+
+/* Contenido */
+.romantic-card-content {
+  text-align: center;
+}
+
+.romantic-card-title {
+  font-size: 1.8rem;
+  color: #d32f2f;
+  margin: 0 0 25px 0;
+  font-weight: bold;
+  text-shadow: 0 2px 10px rgba(211, 47, 47, 0.2);
+}
+
+body.dark-mode .romantic-card-title {
+  color: #ff6b6b;
+  text-shadow: 0 2px 10px rgba(255, 107, 107, 0.3);
+}
+
+.romantic-card-text {
+  color: #333;
+  font-size: 1.1rem;
+  line-height: 1.8;
+}
+
+body.dark-mode .romantic-card-text {
+  color: #e0e0e0;
+}
+
+.romantic-card-text p {
+  margin: 0 0 15px 0;
+}
+
+.romantic-card-signature {
+  margin-top: 30px !important;
+  font-style: italic;
+  color: #d32f2f;
+  font-weight: 500;
+}
+
+body.dark-mode .romantic-card-signature {
+  color: #ff6b6b;
+}
+
+/* Botón mostrar tarjeta (pantalla inicial) */
+.show-card-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  padding: 10px 20px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(211, 47, 47, 0.3);
+  z-index: 10;
+}
+
+.show-card-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(211, 47, 47, 0.4);
+}
+
+body.dark-mode .show-card-btn {
+  background: linear-gradient(135deg, #ff4d4d 0%, #ff6b6b 100%);
+  box-shadow: 0 4px 15px rgba(255, 77, 77, 0.4);
+}
+
+body.dark-mode .show-card-btn:hover {
+  box-shadow: 0 6px 20px rgba(255, 77, 77, 0.5);
+}
+
+/* Botón tarjeta (pantalla galaxia) */
+.btn-card {
+  margin-top: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 10px 28px;
+  border-radius: 30px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.3s, color 0.3s, transform 0.2s, box-shadow 0.3s;
+}
+
+.btn-card:hover,
+.btn-card:focus-visible {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  box-shadow: 0 0 20px rgba(var(--gx-accent-rgb), 0.12);
+}
+
+.btn-card:active {
+  transform: scale(0.96);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .romantic-card {
+    padding: 30px 25px;
+  }
+
+  .romantic-card-title {
+    font-size: 1.5rem;
+  }
+
+  .romantic-card-text {
+    font-size: 1rem;
+  }
+
+  .show-card-btn {
+    top: 15px;
+    right: 15px;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .romantic-card-overlay,
+  .romantic-card,
+  .romantic-card-close,
+  .show-card-btn,
+  .btn-card {
+    transition: none !important;
+    animation: none !important;
+  }
+}

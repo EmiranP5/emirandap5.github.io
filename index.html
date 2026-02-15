@@ -1,208 +1,70 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="es">
 
 <head>
-    <!-- Required meta tags -->
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
-    <!-- Links -->
-    <link rel="shortcut icon" href="assets/img/favicon.ico.ico" type="image/x-icon">
-    <link rel="stylesheet" href="./assets/styles/style.css">
-    <script src="https://kit.fontawesome.com/1cf0fc1f6f.js" crossorigin="anonymous"></script>
-    <!-- <script>
-        window.location.href = "./categories.html"
-    </script> -->
-    <title>AhorrAdas</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¿Serías Mi San Valentin?</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark nav-bg">
-        <div class="container-fluid">
-            <i class="fas fa-wallet text-white fs-1 me-2"></i>
-            <a class="navbar-brand text-white fs-1" href="#">Emprende y Ahorras</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link text-white fs-5" aria-current="page" href="index.html"><i
-                                class="fas fa-chart-line me-2"></i>Balance</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-white fs-5" href="categories.html"><i
-                                class="fas fa-tag me-2"></i>Categorías</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-white fs-5" href="report.html"><i
-                                class="fas fa-chart-pie me-2"></i>Reporte</a>
-                    </li>
-                </ul>
+    <!-- ======== PANTALLA INICIAL ======== -->
+    <div class="screen screen-initial" id="screenInitial">
+        <div class="container">
+            <button id="darkModeToggle" aria-label="Cambiar entre modo claro y oscuro">Modo Oscuro 🌙</button>
+            <h1>💖 Hola Jenny 💖</h1>
+            <p>Sé que es un día especial, y quiero hacerlo aún más especial contigo.</p>
+            <p>Así que, tengo una pregunta para ti...</p>
+            <p class="question">¿Serías mi San Valentín?</p>
+            <div class="buttons">
+                <button id="yesButton" aria-label="Sí, acepto ser tu San Valentín">Si! 💕</button>
+                <button id="noButton" aria-label="No"> No.. 😅</button>
             </div>
+            <div id="imageContainer"></div>
+            <p id="response"></p>
         </div>
-    </nav>
-    <main id="main" class="">
-        <div class="container mt-5">
-            <div class="row">
-                <div class="col-12 col-lg-4">
-                    <div class="bg-light border border-3 rounded-3">
-                        <div class="container mt-2">
-                            <h4 class="fw-bolder">Balance</h4>
-                            <div class="row">
-                                <div class="col-6">
-                                    <h5>Ganancia</h5>
-                                </div>
-                                <div class="col-6">
-                                    <p id= "gain-counter" class="text-success d-flex justify-content-end">+$<span>0</span></p>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-6">
-                                    <h5>Gasto</h5>
-                                </div>
-                                <div class="col-6">
-                                    <p id= "loss-counter" class="text-danger d-flex justify-content-end">-$<span>0</span></p>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-6">
-                                    <h5>Total</h5>
-                                </div>
-                                <div class="col-6">
-                                    <p id= "final-amount" class="fw-bolder d-flex justify-content-end">$<span>0</span></p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mt-3 bg-light border border-3 rounded-3">
-                        <div class="container mt-2">
-                            <div class="row mb-3">
-                                <div class="col-6">
-                                    <h4 class="fw-bolder">Filtros</h4>
-                                </div>
-                                <div class="col-6 d-flex align-items-center text-primary">
-                                    <span id="hide-filter"></span>
-                                </div>
-                            </div>
-                            <div id="filter-selects">
-                                <div class="mb-3">
-                                    <h5>Tipo</h5>
-                                    <select id="type-filter" class="form-select form-select-sm" aria-label=".form-select-sm example">
-                                        <option value="Todos">Todos</option>
-                                        <option value="Gasto">Gasto</option>
-                                        <option value="Ganancia">Ganancia</option>
-                                    </select>
-                                </div>
-                                <div class="mb-3">
-                                    <h5>Categoría</h5>
-                                    <select id="select-category" class="form-select form-select-sm" aria-label=".form-select-sm example">
-                                        <option value="Todas">Todas</option>
-                                    </select>
-                                </div>
-                                <div class="mb-3">
-                                    <h5>Desde</h5>
-                                    <input id="filter-date" type="date" class="input-group form-control">
-                                </div>
-                                <div class="mb-3">
-                                    <h5>Ordenar por</h5>
-                                    <select id="select-sort" class="form-select form-select-sm" aria-label=".form-select-sm example">
-                                        <option value="ordenar-por">Ordenar por</option>
-                                        <option value="mas-reciente">Más reciente</option>
-                                        <option value="menos-reciente">Menos reciente</option>
-                                        <option value="mayor-monto">Mayor monto</option>
-                                        <option value="menor-monto">Menor monto</option>
-                                        <option value="a-z">A/Z</option>
-                                        <option value="z-a">Z/A</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+    </div>
+
+    <!-- ======== PANTALLA GALAXIA ROMÁNTICA ======== -->
+    <div class="screen screen-galaxy" id="screenGalaxy" aria-label="Experiencia Galaxia Romántica">
+        <canvas id="galaxyCanvas"></canvas>
+        <div class="galaxy-overlay" id="galaxyOverlay">
+            <h2 class="galaxy-title">💫 Nuestro Universo 💫</h2>
+
+            <div class="carousel-container" id="carouselContainer" role="region" aria-label="Carrusel de fotos románticas">
+                <div class="carousel-viewport" id="carouselViewport">
+                    <!-- Slides generados dinámicamente por JavaScript -->
                 </div>
-                <div class="container col-12 col-lg-8">
-                    <div class="bg-light border border-3 rounded-3 mt-lg-0 mt-3 mb-3">
-                        <div class="container mt-3">
-                            <div class="row">
-                                <div class="col-6">
-                                    <h4 class="fw-bolder">Operaciones</h4>
-                                </div>
-                                <div class="col-6 d-flex justify-content-end">
-                                    <a href="new_op.html"><button type="button" class="btn btn-bg-color">+ Nueva operación</button></a>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="container d-flex flex-column pb-3">
-                            <!-- Cuando No hay operaciones -->
-                            <div id="empty-ops" class="">
-                                <div class="container d-flex justify-content-center align-items-center mt-5">
-                                    <img src="assets/img/undraw_printing_invoices_5r4r.svg" class="img-fluid"
-                                        alt="PersonsAndMoney">
-                                </div>
-                                <div class="container d-flex justify-content-center align-items-center mt-5">
-                                    <h5>Sin resultados</h5>
-                                </div>
-                                <div class="container d-flex justify-content-center align-items-center mt-2">
-                                    <p>Cambia los filtros o agrega operaciones</p>
-                                </div>
-                            </div>
-                            <!-- Cuando se agregan operaciones -->
-                            <div id="loaded-ops" class="">
-                                <div class="d-none d-md-flex row mt-3">
-                                    <div class="col-3">
-                                        <p class="fw-bold">Descripcion</p>
-                                    </div>
-                                    <div class="col-3">
-                                        <p class="fw-bold">Categoria</p>
-                                    </div>
-                                    <div class="col-2">
-                                        <p class="fw-bold">Fecha</p>
-                                    </div>
-                                    <div class="col-2">
-                                        <p class="fw-bold text-center">Monto</p>
-                                    </div>
-                                    <div class="col-2">
-                                        <p class="fw-bold">Acciones</p>
-                                    </div>
-                                </div>
-                                <!-- OPERATION ROW -->
-                                <div id="operation-row-grid">
-                                    <!-- <div class="row mt-1">
-                                        <div class="col-2">
-                                            <p class="">Descripcion operacion</p>
-                                        </div>
-                                        <div class="col-2">
-                                            <p class="">Categoria</p>
-                                        </div>
-                                        <div class="col-2">
-                                            <p class="">Fecha</p>
-                                        </div>
-                                        <div class="col-2">
-                                            <p class="">$ + o -</p>
-                                        </div>
-                                        <div class="col-4 flex-row fs-6 text">
-                                            <span class="text-success me-3">Editar</span>
-                                            <span class="text-danger">Eliminar</span>
-                                        </div>
-                                    </div> -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <button class="carousel-arrow carousel-prev" id="carouselPrev" aria-label="Foto anterior">&#10094;</button>
+                <button class="carousel-arrow carousel-next" id="carouselNext" aria-label="Siguiente foto">&#10095;</button>
+            </div>
+
+            <p class="carousel-text" id="carouselText"></p>
+            <div class="carousel-dots" id="carouselDots" role="tablist" aria-label="Indicadores de foto"></div>
+
+            <button class="btn-back" id="btnBack" aria-label="Volver a la pantalla inicial">← Volver</button>
+            <button class="btn-card" id="btnCard" aria-label="Mostrar tarjeta romántica">💌 Mensaje</button>
+        </div>
+    </div>
+
+    <!-- ======== MODAL TARJETA ROMÁNTICA ======== -->
+    <div class="romantic-card-overlay" id="romanticCardOverlay">
+        <div class="romantic-card">
+            <button class="romantic-card-close" id="romanticCardClose" aria-label="Cerrar tarjeta">×</button>
+            <div class="romantic-card-content">
+                <h2 class="romantic-card-title">💖 Para Ti, Jenny 💖</h2>
+                <div class="romantic-card-text">
+                    <p>En este día especial, quiero que sepas que cada momento a tu lado es un regalo.</p>
+                    <p>Eres la razón por la que mi mundo brilla más que todas las estrellas de esta galaxia.</p>
+                    <p>Gracias por existir, por estar, por ser tú.</p>
+                    <p class="romantic-card-signature">Con todo mi amor,<br>siempre ❤️</p>
                 </div>
             </div>
         </div>
-    </main>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
-        crossorigin="anonymous"></script>
-    <script src="./assets/types/script.js"></script>
-    <script src="./assets/types/operations.js"></script>
-    <script src="./assets/types/filters.js"></script>
-    <script src="./assets/types/balance.js"></script>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 
 </html>
