@@ -1264,7 +1264,7 @@ function moveNoButton() {
 function activateMouseover() {
   noButton.addEventListener('mouseover', function () {
     imageContainer.innerHTML =
-      '<img src="https://i.pinimg.com/564x/dd/7f/6c/dd7f6ca2bce302e27f51b579ef732aeb.jpeg" alt="Laughing Snoopy">';
+      '<img src="./assets/img/00.png" alt="Laughing Snoopy">';
     responseEl.textContent = "Jaja, no puedes tocar el botón 🤣🫢";
     moveNoButton();
   });
