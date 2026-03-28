@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Waterfall Demo — Análisis de Sistemas</title>
+<style>
+/* ── Reset ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --b9:#0f172a;--b8:#1e3a5f;--b7:#1d4ed8;--b6:#2563eb;--b4:#60a5fa;--b1:#dbeafe;--b0:#eff6ff;
+  --g8:#1e293b;--g6:#475569;--g4:#94a3b8;--g2:#e2e8f0;--g1:#f1f5f9;--g0:#f8fafc;
+  --wh:#fff;--r6:#dc2626;--r1:#fee2e2;--gr:#16a34a;
+  --sh1:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+  --sh2:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -1px rgba(0,0,0,.06);
+  --sh3:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -2px rgba(0,0,0,.05);
+  --sh4:0 20px 25px -5px rgba(0,0,0,.14),0 10px 10px -5px rgba(0,0,0,.04);
+  --rad:14px;--rads:10px;--tr:.25s cubic-bezier(.4,0,.2,1);
+}
+html{font-size:16px;scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--g1);color:var(--g8);min-height:100vh;overflow-x:hidden}
+
+/* ── Header ── */
+.hdr{background:var(--b9);color:var(--wh);padding:12px 16px;display:flex;align-items:center;gap:10px;box-shadow:var(--sh2);position:sticky;top:0;z-index:100;min-width:0}
+.hdr-logo{width:34px;height:34px;background:var(--b6);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.hdr-text{min-width:0;flex:1}
+.hdr-text h1{font-size:.9rem;font-weight:800;letter-spacing:-.02em;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hdr-text p{font-size:.66rem;color:var(--b4);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* restart pill always visible top-right */
+.btn-restart{margin-left:auto;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:var(--wh);padding:7px 11px;border-radius:20px;font-size:.7rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;transition:var(--tr);flex-shrink:0;white-space:nowrap;min-height:34px}
+.btn-restart:hover{background:rgba(255,255,255,.2)}
+@media(max-width:360px){.hdr-text p{display:none}}
+
+/* ── Nav Steps ── */
+.phase-nav{background:var(--wh);border-bottom:1px solid var(--g2);display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:0 8px}
+.phase-nav::-webkit-scrollbar{display:none}
+.step{display:flex;align-items:center;padding:11px 10px;gap:7px;flex-shrink:0;position:relative}
+.step:not(:last-child)::after{content:'›';position:absolute;right:2px;color:var(--g4);font-size:.9rem}
+.step-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;background:var(--g2);color:var(--g6);transition:var(--tr);flex-shrink:0}
+.step-lbl{font-size:.75rem;color:var(--g6);font-weight:500;white-space:nowrap}
+.step.active .step-dot{background:var(--b6);color:var(--wh)}
+.step.active .step-lbl{color:var(--b7);font-weight:700}
+.step.done .step-dot{background:var(--gr);color:var(--wh)}
+.step.done .step-lbl{color:var(--g4)}
+.step.locked{opacity:.5}
+
+/* ── Main ── */
+.main{padding:14px;max-width:680px;margin:0 auto}
+
+/* ── Screen ── */
+.screen{display:none;animation:fadeUp .35s ease}
+.screen.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Card ── */
+.card{background:var(--wh);border-radius:var(--rad);box-shadow:var(--sh2);padding:18px;margin-bottom:14px}
+.card-title{font-size:.9rem;font-weight:800;color:var(--b8);margin-bottom:5px;display:flex;align-items:center;gap:7px}
+.card-desc{font-size:.78rem;color:var(--g6);margin-bottom:14px;line-height:1.55}
+
+/* ── Phase Banner ── */
+.banner{border-radius:var(--rad);padding:18px;margin-bottom:14px;color:var(--wh);display:flex;gap:14px;align-items:flex-start}
+.banner .bicon{font-size:2rem;line-height:1;flex-shrink:0}
+.banner h2{font-size:1.1rem;font-weight:900;margin-bottom:4px;line-height:1.2}
+.banner p{font-size:.78rem;opacity:.88;line-height:1.5}
+.phase-tag{display:inline-block;background:rgba(255,255,255,.2);border-radius:20px;padding:2px 9px;font-size:.67rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px}
+@media(max-width:420px){.banner{flex-direction:column;gap:8px}.banner .bicon{font-size:1.6rem}}
+
+/* ── Pool / Dropzone ── */
+.pool{display:flex;flex-wrap:wrap;gap:8px;padding:14px;background:var(--g0);border:2px dashed var(--g2);border-radius:var(--rads);min-height:72px}
+.dzone{min-height:110px;padding:14px;background:var(--b0);border:2px dashed var(--b4);border-radius:var(--rads);display:flex;flex-wrap:wrap;gap:8px;align-content:flex-start;transition:var(--tr);position:relative}
+.dzone.over{background:#dbeafe;border-color:var(--b6);box-shadow:inset 0 0 0 3px rgba(37,99,235,.12)}
+.dzone-hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--b4);font-size:.78rem;text-align:center;pointer-events:none;white-space:normal;width:90%;line-height:1.4}
+
+/* ── Feature Chips ── */
+.fchip{background:var(--wh);border:1.5px solid var(--g2);border-radius:var(--rads);padding:10px 13px;font-size:.8rem;font-weight:700;color:var(--g8);cursor:grab;user-select:none;display:flex;align-items:center;gap:6px;box-shadow:var(--sh1);transition:var(--tr);touch-action:none;-webkit-user-select:none}
+.fchip:active{cursor:grabbing}
+.fchip:hover{box-shadow:var(--sh2);transform:translateY(-2px)}
+.fchip.dragging{opacity:.35;transform:scale(.95)}
+.fchip.in-zone{background:var(--b6);color:var(--wh);border-color:var(--b6)}
+.fchip.used{opacity:.3;cursor:not-allowed;pointer-events:none}
+.fchip.frozen{cursor:not-allowed;opacity:.55;background:var(--g1);border-color:var(--g2);color:var(--g4);pointer-events:none}
+/* bigger tap targets on mobile */
+@media(max-width:500px){.fchip{padding:12px 14px;font-size:.82rem}}
+
+/* ── Color Phase ── */
+.color-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:14px;background:var(--g0);border:2px dashed var(--g2);border-radius:var(--rads)}
+@media(max-width:340px){.color-grid{grid-template-columns:repeat(2,1fr)}}
+.cchip{border-radius:var(--rads);cursor:grab;box-shadow:var(--sh2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:.65rem;font-weight:800;color:var(--wh);text-shadow:0 1px 3px rgba(0,0,0,.5);transition:var(--tr);user-select:none;touch-action:none;aspect-ratio:1;position:relative;overflow:hidden}
+.cchip .cname{font-size:.6rem;font-weight:700;letter-spacing:.03em}
+.cchip:hover{transform:scale(1.07) translateY(-2px);box-shadow:var(--sh4)}
+.cchip.dragging{opacity:.3}
+.cchip.selected::after{content:'✓';position:absolute;top:4px;right:5px;font-size:.8rem;background:rgba(0,0,0,.3);border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-weight:900}
+.cchip.frozen{cursor:not-allowed;pointer-events:none}
+/* color slot targets */
+.color-slots{display:flex;gap:8px;margin-bottom:12px;flex-wrap:nowrap}
+.cslot{flex:1;min-width:0;height:52px;border-radius:var(--rads);border:2px dashed var(--g4);display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--g4);font-weight:700;transition:var(--tr);position:relative;overflow:hidden}
+@media(max-width:360px){.color-slots{gap:6px}.cslot{height:44px}}
+.cslot.over{border-color:var(--b6);background:var(--b0)}
+.cslot.filled{border-style:solid;border-color:transparent}
+.cslot .slot-label{position:absolute;bottom:3px;left:0;right:0;text-align:center;font-size:.58rem;font-weight:700;color:rgba(255,255,255,.85);text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.slot-hint-txt{font-size:.72rem;color:var(--g6);margin-bottom:10px}
+/* mock ui */
+.mock-ui{border-radius:var(--rad);padding:16px;min-height:150px;position:relative;overflow:hidden;border:2px dashed var(--g4);transition:all .5s ease}
+.mock-ui.over{border-color:var(--wh);border-style:solid}
+.mock-topbar{height:32px;border-radius:6px;background:rgba(255,255,255,.12);margin-bottom:10px;display:flex;align-items:center;padding:0 10px;gap:6px;font-size:.7rem;color:rgba(255,255,255,.7);transition:background .5s ease}
+.mock-row{display:flex;gap:8px}
+.mock-blk{height:60px;flex:1;border-radius:6px;background:rgba(255,255,255,.08);transition:background .5s ease}
+.mock-hint-txt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.35);font-size:.8rem;pointer-events:none}
+.mock-hint-txt.gone{display:none}
+/* color count badge */
+.color-count-badge{display:inline-flex;align-items:center;gap:5px;font-size:.75rem;font-weight:700;color:var(--b6);margin-top:8px}
+.color-count-badge .dots{display:flex;gap:4px}
+.color-count-badge .dot{width:10px;height:10px;border-radius:50%;background:var(--g2);transition:var(--tr)}
+.color-count-badge .dot.filled{background:var(--b6)}
+
+/* ── Icons Phase ── */
+.icon-pool{display:flex;flex-wrap:wrap;gap:10px;padding:14px;background:var(--g0);border:2px dashed var(--g2);border-radius:var(--rads);justify-content:center}
+.ichip{width:66px;height:66px;border-radius:var(--rads);background:var(--wh);border:1.5px solid var(--g2);box-shadow:var(--sh1);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:1.4rem;cursor:grab;user-select:none;touch-action:none;transition:var(--tr);-webkit-user-select:none;flex-shrink:0}
+.ichip .ilbl{font-size:.58rem;font-weight:700;color:var(--g6)}
+.ichip:hover{box-shadow:var(--sh2);transform:translateY(-2px)}
+.ichip.dragging{opacity:.25}
+.ichip.used{opacity:.25;cursor:not-allowed;pointer-events:none}
+.mod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px}
+@media(max-width:360px){.mod-grid{grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:8px}.ichip{width:60px;height:60px;font-size:1.2rem}}
+.mslot{background:var(--b0);border:2px dashed var(--b4);border-radius:var(--rads);padding:14px 8px;min-height:90px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;transition:var(--tr)}
+.mslot.over{background:var(--b1);border-color:var(--b6)}
+.mslot.wrong{background:#fee2e2;border-color:var(--r6)}
+.mslot.filled{border-color:var(--gr);border-style:solid;background:#f0fdf4}
+.mslot .sname{font-size:.68rem;font-weight:700;color:var(--b7);margin-top:5px}
+.mslot .sicon{font-size:1.6rem}
+.mslot .shint{font-size:.6rem;color:var(--b4)}
+
+/* ── Frozen overlay ── */
+.lock-wrap{position:relative;overflow:hidden;border-radius:var(--rad)}
+.lock-layer{display:none;position:absolute;inset:0;background:rgba(15,23,42,.75);border-radius:var(--rad);align-items:center;justify-content:center;flex-direction:column;gap:6px;color:var(--wh);font-size:.82rem;font-weight:800;letter-spacing:.05em;backdrop-filter:blur(3px);z-index:20}
+.lock-layer.on{display:flex}
+.lock-layer .licon{font-size:1.8rem}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:13px 22px;border:none;border-radius:var(--rads);font-size:.88rem;font-weight:800;cursor:pointer;transition:var(--tr);letter-spacing:-.01em;text-align:center;justify-content:center}
+.btn-blue{background:var(--b6);color:var(--wh);box-shadow:var(--sh2)}
+.btn-blue:hover{background:#1d4ed8;transform:translateY(-1px);box-shadow:var(--sh3)}
+.btn-blue:disabled{background:var(--g2);color:var(--g4);cursor:not-allowed;transform:none;box-shadow:none;pointer-events:none}
+.btn-red{background:var(--r6);color:var(--wh);box-shadow:var(--sh2)}
+.btn-red:hover{background:#b91c1c}
+.btn-green{background:var(--gr);color:var(--wh);box-shadow:var(--sh2)}
+.btn-green:hover{background:#15803d}
+.btn-full{width:100%;margin-top:14px;padding:15px 22px;font-size:.92rem}
+/* mobile: button easier to tap */
+@media(max-width:500px){.btn-full{padding:17px 22px;font-size:.95rem}}
+
+/* ── Loading overlay ── */
+#loading{display:none;position:fixed;inset:0;background:rgba(15,23,42,.9);z-index:800;flex-direction:column;align-items:center;justify-content:center;color:var(--wh);gap:18px;padding:30px}
+#loading.on{display:flex}
+.spin{width:48px;height:48px;border:4px solid rgba(255,255,255,.18);border-top-color:var(--b4);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-title{font-size:1.1rem;font-weight:800;text-align:center}
+.load-sub{font-size:.78rem;color:var(--b4);text-align:center}
+.load-bar-wrap{width:200px;height:4px;background:rgba(255,255,255,.12);border-radius:4px;overflow:hidden}
+.load-bar{height:100%;background:var(--b4);border-radius:4px;width:0;transition:width linear}
+
+/* ── Error Modal ── */
+#modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:900;align-items:flex-end;justify-content:center;padding:0}
+#modal.on{display:flex;animation:fadeUp .3s ease}
+@media(min-width:540px){#modal{align-items:center;padding:20px}}
+.modal-box{background:var(--wh);border-radius:var(--rad) var(--rad) 0 0;max-width:520px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,.25)}
+@media(min-width:540px){.modal-box{border-radius:var(--rad)}}
+.modal-hdr{background:var(--r6);padding:22px 20px 18px;color:var(--wh);text-align:center;position:relative}
+.modal-hdr h2{font-size:1.15rem;font-weight:900;text-transform:uppercase;letter-spacing:-.01em}
+.modal-hdr .err-code{font-size:.68rem;opacity:.75;margin-top:3px;font-family:monospace}
+.modal-body{padding:18px}
+.modal-body p{font-size:.84rem;color:var(--g8);line-height:1.65;margin-bottom:12px}
+.stat-row{display:flex;align-items:center;gap:12px;background:var(--r1);border-left:4px solid var(--r6);border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.stat-row .sico{font-size:1.4rem}
+.stat-row .sval{font-size:1.3rem;font-weight:900;color:var(--r6);line-height:1}
+.stat-row .slbl{font-size:.7rem;color:var(--g6);margin-top:2px}
+.lesson-box{background:var(--b0);border-left:4px solid var(--b6);border-radius:8px;padding:12px 14px;font-size:.78rem;color:var(--b8);line-height:1.6;margin-top:12px}
+.lesson-box strong{color:var(--b7)}
+.modal-footer{padding:0 18px 28px;display:flex;gap:9px;flex-wrap:wrap}
+.modal-footer .btn{flex:1;min-width:120px}
+@media(max-width:360px){.modal-footer{flex-direction:column}.modal-footer .btn{min-width:unset;width:100%}}
+
+/* ── Angry client dono ── */
+.dono-wrap{display:flex;justify-content:center;margin:-6px 0 14px}
+.dono{position:relative;width:90px;height:90px}
+/* body */
+.dono-body{width:80px;height:80px;background:radial-gradient(circle at 40% 35%,#facc15,#f59e0b);border-radius:50%;position:absolute;top:5px;left:5px;box-shadow:0 6px 18px rgba(0,0,0,.3);animation:dono-shake .4s ease infinite alternate}
+@keyframes dono-shake{from{transform:rotate(-6deg) scale(1)}to{transform:rotate(6deg) scale(1.04)}}
+/* eyes */
+.dono-eye{position:absolute;top:26px;width:14px;height:10px;background:#1e293b;border-radius:50%;overflow:hidden}
+.dono-eye.l{left:16px;transform:rotate(15deg)}
+.dono-eye.r{right:16px;transform:rotate(-15deg)}
+.dono-eye::after{content:'';position:absolute;top:1px;left:2px;width:5px;height:5px;background:var(--r6);border-radius:50%;animation:eye-pulse .6s ease infinite alternate}
+@keyframes eye-pulse{from{transform:scale(1)}to{transform:scale(1.3)}}
+/* eyebrows angry */
+.dono-brow{position:absolute;top:18px;height:4px;width:18px;background:#1e293b;border-radius:3px}
+.dono-brow.l{left:13px;transform:rotate(20deg)}
+.dono-brow.r{right:13px;transform:rotate(-20deg)}
+/* mouth */
+.dono-mouth{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);width:32px;height:14px;border:3px solid #1e293b;border-top:none;border-radius:0 0 20px 20px;background:#7f1d1d}
+/* sweat drops */
+.dono-sweat{position:absolute;font-size:1rem;animation:sweat-drop 1.2s ease infinite}
+.dono-sweat.s1{top:-4px;right:2px;animation-delay:0s}
+.dono-sweat.s2{top:6px;right:-8px;animation-delay:.4s}
+.dono-sweat.s3{top:-2px;left:-5px;animation-delay:.7s}
+@keyframes sweat-drop{0%,100%{opacity:0;transform:translateY(0)}50%{opacity:1;transform:translateY(8px)}}
+/* steam above head */
+.dono-steam{position:absolute;top:-14px;left:50%;transform:translateX(-50%);display:flex;gap:5px}
+.steam-puff{width:10px;height:10px;background:rgba(239,68,68,.6);border-radius:50%;animation:puff 1s ease infinite}
+.steam-puff:nth-child(2){animation-delay:.2s;width:8px;height:8px}
+.steam-puff:nth-child(3){animation-delay:.4s}
+@keyframes puff{0%{opacity:.9;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-18px) scale(1.5)}}
+/* speech bubble */
+.speech{position:absolute;top:-30px;right:-18px;background:var(--r6);color:var(--wh);font-size:.58rem;font-weight:900;padding:4px 7px;border-radius:8px;white-space:nowrap;animation:bubble-bounce .7s ease infinite alternate;z-index:10}
+.speech::after{content:'';position:absolute;bottom:-6px;left:10px;border:4px solid transparent;border-top-color:var(--r6)}
+@keyframes bubble-bounce{from{transform:translateY(0) rotate(-2deg)}to{transform:translateY(-4px) rotate(2deg)}}
+
+/* ── Misc ── */
+.section-lbl{font-size:.68rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--g4);margin-bottom:7px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+@media(max-width:480px){.two-col{grid-template-columns:1fr}}
+.tag-chip{display:inline-block;border-radius:20px;padding:2px 8px;font-size:.67rem;font-weight:700;vertical-align:middle;margin-left:5px}
+.tag-red{background:var(--r1);color:var(--r6)}
+.tag-blue{background:var(--b1);color:var(--b7)}
+/* progress count */
+.pcount{font-size:.78rem;color:var(--g6);margin-top:8px;text-align:center;font-weight:600}
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══ -->
+<header class="hdr">
+  <div class="hdr-logo">🌊</div>
+  <div class="hdr-text">
+    <h1>Waterfall — Demo</h1>
+    <p>Análisis de Sistemas · Ciclo de vida rígido</p>
+  </div>
+  <button class="btn-restart" onclick="restartAll()" title="Reiniciar demo">↺ Reiniciar</button>
+</header>
+
+<!-- ══ NAV ══ -->
+<nav class="phase-nav" id="phase-nav">
+  <div class="step active" id="nav-1"><div class="step-dot">1</div><div class="step-lbl">Requisitos</div></div>
+  <div class="step" id="nav-2"><div class="step-dot">2</div><div class="step-lbl">Diseño</div></div>
+  <div class="step" id="nav-3"><div class="step-dot">3</div><div class="step-lbl">Iconos</div></div>
+  <div class="step" id="nav-4"><div class="step-dot">4</div><div class="step-lbl">Entrega</div></div>
+</nav>
+
+<main class="main">
+
+  <!-- ════ FASE 1: REQUISITOS ════ -->
+  <section class="screen active" id="screen-1">
+    <div class="banner" style="background:linear-gradient(135deg,#1e3a5f,#2563eb)">
+      <div class="bicon">📋</div>
+      <div>
+        <div class="phase-tag">Fase 1 · Requisitos</div>
+        <h2>Levantamiento de Requisitos</h2>
+        <p>Arrastra las funcionalidades al <strong>Backlog</strong>. Mínimo 3. Una vez avances, <strong>no hay vuelta atrás.</strong></p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🏗️ Features Disponibles</div>
+      <div class="card-desc">Toca y arrastra las features al backlog del proyecto.</div>
+      <div class="section-lbl">Pool de Features</div>
+      <div class="pool" id="feat-pool">
+        <div class="fchip" draggable="true" data-id="login">🔐 Login</div>
+        <div class="fchip" draggable="true" data-id="db">🗄️ Base de Datos</div>
+        <div class="fchip" draggable="true" data-id="dash">📊 Dashboard</div>
+        <div class="fchip" draggable="true" data-id="notif">🔔 Notificaciones</div>
+        <div class="fchip" draggable="true" data-id="api">⚙️ API REST</div>
+        <div class="fchip" draggable="true" data-id="reports">📈 Reportes</div>
+        <div class="fchip" draggable="true" data-id="users">👥 Usuarios</div>
+        <div class="fchip" draggable="true" data-id="search">🔍 Búsqueda</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🚀 Backlog del Proyecto</div>
+      <div class="dzone" id="zone-1">
+        <div class="dzone-hint" id="zone1-hint">⬇ Arrastra las features aquí</div>
+      </div>
+      <div class="pcount" id="feat-count">0 / mínimo 3 features</div>
+    </div>
+
+    <button class="btn btn-blue btn-full" id="btn1" disabled>Siguiente — Fase 2: Diseño →</button>
+  </section>
+
+  <!-- ════ FASE 2: DISEÑO ════ -->
+  <section class="screen" id="screen-2">
+    <div class="banner" style="background:linear-gradient(135deg,#312e81,#4f46e5)">
+      <div class="bicon">🎨</div>
+      <div>
+        <div class="phase-tag">Fase 2 · Diseño</div>
+        <h2>Branding y Colores</h2>
+        <p>Elige hasta <strong>3 colores</strong> corporativos arrastrándolos a los slots de la interfaz.</p>
+      </div>
+    </div>
+
+    <!-- Fase 1 congelada -->
+    <div class="lock-wrap card" id="frozen1" style="padding:14px;margin-bottom:14px">
+      <div class="lock-layer on"><div class="licon">🔒</div><div>FASE 1 BLOQUEADA</div><div style="font-size:.65rem;opacity:.7;margin-top:2px">Requisitos sellados irreversiblemente</div></div>
+      <div class="card-title" style="font-size:.82rem">📋 Requisitos <span class="tag-chip tag-red">CONGELADO</span></div>
+      <div class="pool" id="frozen-feat-preview" style="pointer-events:none;opacity:.45;margin-top:8px;min-height:44px"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🎨 Paleta Corporativa</div>
+      <div class="card-desc">Puedes elegir entre 1 y 3 colores. Arrástralos a los slots de color debajo.</div>
+      <div class="section-lbl">Colores disponibles</div>
+      <div class="color-grid" id="color-pool">
+        <div class="cchip" draggable="true" data-color="#2563eb" data-name="Azul Corp" data-id="c1" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6)">🔵<span class="cname">Azul Corp</span></div>
+        <div class="cchip" draggable="true" data-color="#7c3aed" data-name="Violeta" data-id="c2" style="background:linear-gradient(135deg,#6d28d9,#8b5cf6)">🟣<span class="cname">Violeta</span></div>
+        <div class="cchip" draggable="true" data-color="#16a34a" data-name="Verde Eco" data-id="c3" style="background:linear-gradient(135deg,#15803d,#22c55e)">🟢<span class="cname">Verde Eco</span></div>
+        <div class="cchip" draggable="true" data-color="#dc2626" data-name="Rojo Bold" data-id="c4" style="background:linear-gradient(135deg,#b91c1c,#ef4444)">🔴<span class="cname">Rojo Bold</span></div>
+        <div class="cchip" draggable="true" data-color="#0891b2" data-name="Cyan Sky" data-id="c5" style="background:linear-gradient(135deg,#0e7490,#06b6d4)">🩵<span class="cname">Cyan Sky</span></div>
+        <div class="cchip" draggable="true" data-color="#d97706" data-name="Ámbar" data-id="c6" style="background:linear-gradient(135deg,#b45309,#f59e0b)">🟡<span class="cname">Ámbar</span></div>
+      </div>
+      <div class="color-count-badge" id="color-badge">
+        <span>Colores elegidos:</span>
+        <div class="dots"><div class="dot" id="cd1"></div><div class="dot" id="cd2"></div><div class="dot" id="cd3"></div></div>
+        <span id="color-count-txt">0 / 3</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🖥️ Interfaz Mockup</div>
+      <div class="card-desc">Arrastra los colores a los slots. Acepta hasta 3.</div>
+      <div class="section-lbl">Slots de branding</div>
+      <div class="color-slots" id="color-slots">
+        <div class="cslot" data-slot="0"><span class="slot-label">Principal</span></div>
+        <div class="cslot" data-slot="1"><span class="slot-label">Secundario</span></div>
+        <div class="cslot" data-slot="2"><span class="slot-label">Acento</span></div>
+      </div>
+      <div class="mock-ui" id="mock-ui" style="background:#1e293b">
+        <div class="mock-topbar" id="mock-bar">● ● &nbsp; Sistema v1.0</div>
+        <div class="mock-row">
+          <div class="mock-blk" id="mb1"></div>
+          <div class="mock-blk" id="mb2"></div>
+          <div class="mock-blk" id="mb3"></div>
+        </div>
+        <div class="mock-hint-txt" id="mock-hint">⬇ Arrastra los colores a los slots</div>
+      </div>
+    </div>
+
+    <button class="btn btn-blue btn-full" id="btn2" disabled>Siguiente — Fase 3: Iconos →</button>
+  </section>
+
+  <!-- ════ FASE 3: ICONOS ════ -->
+  <section class="screen" id="screen-3">
+    <div class="banner" style="background:linear-gradient(135deg,#065f46,#059669)">
+      <div class="bicon">🖼️</div>
+      <div>
+        <div class="phase-tag">Fase 3 · Iconografía</div>
+        <h2>Asignar Iconos</h2>
+        <p>Arrastra cada ícono al módulo correcto. Última fase antes de la entrega al cliente.</p>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card lock-wrap" style="padding:14px;margin-bottom:0">
+        <div class="lock-layer on"><div class="licon">🔒</div><div style="font-size:.78rem">FASE 1 BLOQUEADA</div></div>
+        <div class="card-title" style="font-size:.8rem">📋 Requisitos <span class="tag-chip tag-red" style="font-size:.6rem">CONGELADO</span></div>
+        <div style="font-size:.7rem;color:var(--g4);margin-top:4px">Sellada irreversiblemente</div>
+      </div>
+      <div class="card lock-wrap" style="padding:14px;margin-bottom:0">
+        <div class="lock-layer on"><div class="licon">🔒</div><div style="font-size:.78rem">FASE 2 BLOQUEADA</div></div>
+        <div class="card-title" style="font-size:.8rem">🎨 Diseño <span class="tag-chip tag-red" style="font-size:.6rem">CONGELADO</span></div>
+        <div style="font-size:.7rem;color:var(--g4);margin-top:4px">Sellada irreversiblemente</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <div class="card-title">🖼️ Biblioteca de Íconos</div>
+      <div class="card-desc">Arrastra el ícono correcto a su módulo. Solo los compatibles son aceptados.</div>
+      <div class="icon-pool" id="icon-pool">
+        <div class="ichip" draggable="true" data-id="i-lock" data-for="login" touch-action="none">🔐<span class="ilbl">Login</span></div>
+        <div class="ichip" draggable="true" data-id="i-db" data-for="db" touch-action="none">🗄️<span class="ilbl">Base Datos</span></div>
+        <div class="ichip" draggable="true" data-id="i-chart" data-for="dash" touch-action="none">📊<span class="ilbl">Dashboard</span></div>
+        <div class="ichip" draggable="true" data-id="i-bell" data-for="notif" touch-action="none">🔔<span class="ilbl">Notif.</span></div>
+        <div class="ichip" draggable="true" data-id="i-gear" data-for="api" touch-action="none">⚙️<span class="ilbl">API</span></div>
+        <div class="ichip" draggable="true" data-id="i-graph" data-for="reports" touch-action="none">📈<span class="ilbl">Reportes</span></div>
+        <div class="ichip" draggable="true" data-id="i-users" data-for="users" touch-action="none">👥<span class="ilbl">Usuarios</span></div>
+        <div class="ichip" draggable="true" data-id="i-search" data-for="search" touch-action="none">🔍<span class="ilbl">Búsqueda</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📦 Módulos del Sistema</div>
+      <div class="mod-grid" id="mod-grid"></div>
+      <div class="pcount" id="icon-count">0 módulos asignados</div>
+    </div>
+
+    <button class="btn btn-blue btn-full" id="btn3" disabled>Finalizar — Enviar al Cliente →</button>
+  </section>
+
+</main>
+
+<!-- ══ LOADING ══ -->
+<div id="loading">
+  <div class="spin"></div>
+  <div class="load-title" id="load-title">Implementando...</div>
+  <div class="load-sub" id="load-sub">Procesando — proceso irreversible</div>
+  <div class="load-bar-wrap"><div class="load-bar" id="load-bar"></div></div>
+</div>
+
+<!-- ══ ERROR MODAL ══ -->
+<div id="modal">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <!-- Cliente enojado animado -->
+      <div class="dono-wrap">
+        <div class="dono">
+          <div class="dono-steam"><div class="steam-puff"></div><div class="steam-puff"></div><div class="steam-puff"></div></div>
+          <div class="dono-body">
+            <div class="dono-brow l"></div>
+            <div class="dono-brow r"></div>
+            <div class="dono-eye l"></div>
+            <div class="dono-eye r"></div>
+            <div class="dono-mouth"></div>
+          </div>
+          <div class="dono-sweat s1">💧</div>
+          <div class="dono-sweat s2">💧</div>
+          <div class="dono-sweat s3">💧</div>
+          <div class="speech">¡Cambié los requisitos!</div>
+        </div>
+      </div>
+      <h2>¡ERROR CRÍTICO DEL SISTEMA!</h2>
+      <div class="err-code">WATERFALL_CHANGE_REQUEST · Código WF-0x4D2</div>
+    </div>
+    <div class="modal-body" id="modal-body">
+      <p>
+        <strong>El cliente cambió los requisitos iniciales.</strong><br>
+        Solicita un módulo de <em>Pagos con IA</em> no contemplado en la Fase 1,
+        cambios en la paleta de colores y nuevos íconos de marca.
+      </p>
+      <div class="stat-row">
+        <div class="sico">💸</div>
+        <div><div class="sval">100×</div><div class="slbl">Costo de corrección vs. detectarlo en Requisitos</div></div>
+      </div>
+      <div class="stat-row">
+        <div class="sico">🔄</div>
+        <div><div class="sval">Reinicio Total</div><div class="slbl">Waterfall obliga a reiniciar desde cero ante cualquier cambio post-implementación</div></div>
+      </div>
+      <div class="stat-row">
+        <div class="sico">🕐</div>
+        <div><div class="sval">+8 meses</div><div class="slbl">Estimación de retraso para incorporar los cambios</div></div>
+      </div>
+      <div class="lesson-box">
+        <strong>📚 Lección — Análisis de Sistemas:</strong><br>
+        Waterfall asume requisitos perfectos y estables desde el inicio. Cada fase se "sella" sin posibilidad de modificación. Metodologías ágiles como <strong>Scrum</strong> integran el feedback en cada sprint, manteniendo el costo de cambio <strong>bajo y constante.</strong>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-red" onclick="restartAll()">↺ Reiniciar Ciclo</button>
+      <button class="btn btn-green" onclick="showAgile()">✅ Ver Alternativa Ágil</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────
+const ST = {
+  phase: 1,
+  features: [],   // ids dropped
+  colors: [],     // [{color,name,id}] up to 3
+  icons: {},      // {moduleId: iconId}
+};
+
+const FEAT = {
+  login:   { e:'🔐', l:'Login' },
+  db:      { e:'🗄️', l:'Base de Datos' },
+  dash:    { e:'📊', l:'Dashboard' },
+  notif:   { e:'🔔', l:'Notificaciones' },
+  api:     { e:'⚙️', l:'API REST' },
+  reports: { e:'📈', l:'Reportes' },
+  users:   { e:'👥', l:'Usuarios' },
+  search:  { e:'🔍', l:'Búsqueda' },
+};
+
+// ── Generic drag state ──────────────────────────────
+let DG = { el:null, data:null, clone:null };
+
+function makeTouchClone(el, touch) {
+  const r = el.getBoundingClientRect();
+  const c = el.cloneNode(true);
+  c.style.cssText = `position:fixed;z-index:9999;pointer-events:none;opacity:.85;width:${r.width}px;height:${r.height}px;left:${touch.clientX - r.width/2}px;top:${touch.clientY - r.height/2}px;transition:none;`;
+  document.body.appendChild(c);
+  return c;
+}
+function moveTouchClone(touch) {
+  if (!DG.clone) return;
+  const c = DG.clone;
+  const w = parseFloat(c.style.width);
+  const h = parseFloat(c.style.height);
+  c.style.left = (touch.clientX - w/2) + 'px';
+  c.style.top  = (touch.clientY - h/2) + 'px';
+}
+function killTouchClone() {
+  if (DG.clone) { DG.clone.remove(); DG.clone = null; }
+  DG.el = null; DG.data = null;
+}
+function elemAtTouch(t) {
+  return document.elementFromPoint(t.clientX, t.clientY);
+}
+
+// ══════════════════════════════════════════════════
+// FASE 1 — Features DnD
+// ══════════════════════════════════════════════════
+function initF1() {
+  const pool = document.getElementById('feat-pool');
+  const zone = document.getElementById('zone-1');
+
+  pool.addEventListener('dragstart', e => {
+    const ch = e.target.closest('.fchip'); if (!ch) return;
+    DG.el = ch; ch.classList.add('dragging');
+    e.dataTransfer.setData('text/plain', ch.dataset.id);
+  });
+  pool.addEventListener('dragend', () => {
+    if (DG.el) DG.el.classList.remove('dragging'); DG.el = null;
+  });
+  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('over');
+    addFeature(e.dataTransfer.getData('text/plain'));
+  });
+
+  // Touch
+  pool.addEventListener('touchstart', e => {
+    const ch = e.target.closest('.fchip'); if (!ch || ch.classList.contains('used')) return;
+    e.preventDefault();
+    DG.el = ch; DG.data = ch.dataset.id;
+    DG.clone = makeTouchClone(ch, e.touches[0]);
+  }, { passive: false });
+
+  document.addEventListener('touchmove', e => {
+    if (!DG.clone || ST.phase !== 1) return;
+    e.preventDefault(); moveTouchClone(e.touches[0]);
+    const r = zone.getBoundingClientRect(), t = e.touches[0];
+    zone.classList.toggle('over', t.clientX>=r.left && t.clientX<=r.right && t.clientY>=r.top && t.clientY<=r.bottom);
+  }, { passive: false });
+
+  document.addEventListener('touchend', e => {
+    if (!DG.clone || ST.phase !== 1) return;
+    zone.classList.remove('over');
+    const t = e.changedTouches[0], r = zone.getBoundingClientRect();
+    if (t.clientX>=r.left && t.clientX<=r.right && t.clientY>=r.top && t.clientY<=r.bottom) addFeature(DG.data);
+    killTouchClone();
+  });
+}
+
+function addFeature(id) {
+  if (!id || ST.features.includes(id)) return;
+  const srcChip = document.querySelector(`#feat-pool .fchip[data-id="${id}"]`);
+  if (!srcChip) return;
+  ST.features.push(id);
+  srcChip.classList.add('used');
+
+  const zone = document.getElementById('zone-1');
+  document.getElementById('zone1-hint').style.display = 'none';
+  const newCh = document.createElement('div');
+  newCh.className = 'fchip in-zone';
+  newCh.draggable = false;
+  newCh.textContent = `${FEAT[id].e} ${FEAT[id].l}`;
+  zone.appendChild(newCh);
+
+  const cnt = ST.features.length;
+  document.getElementById('feat-count').textContent = `${cnt} feature${cnt!==1?'s':''} seleccionada${cnt!==1?'s':''}`;
+  document.getElementById('btn1').disabled = cnt < 3;
+  if (cnt >= 3) document.getElementById('btn1').textContent = `Siguiente — Fase 2: Diseño → (${cnt} features)`;
+}
+
+document.getElementById('btn1').addEventListener('click', () => {
+  showLoading('Verificando Requisitos...', 'Sellando fase de análisis — irreversible', 2200, () => goPhase(2));
+});
+
+// ══════════════════════════════════════════════════
+// FASE 2 — Color DnD (hasta 3 colores)
+// ══════════════════════════════════════════════════
+function initF2() {
+  const cpool = document.getElementById('color-pool');
+  const slots = document.getElementById('color-slots');
+
+  // Fill frozen preview
+  const prev = document.getElementById('frozen-feat-preview');
+  prev.innerHTML = '';
+  ST.features.forEach(id => {
+    const d = document.createElement('div');
+    d.className = 'fchip frozen';
+    d.textContent = `${FEAT[id].e} ${FEAT[id].l}`;
+    prev.appendChild(d);
+  });
+
+  // Desktop drag from pool
+  cpool.addEventListener('dragstart', e => {
+    const ch = e.target.closest('.cchip'); if (!ch || ch.classList.contains('selected')) return;
+    DG.el = ch; ch.classList.add('dragging');
+    e.dataTransfer.setData('text/plain', JSON.stringify({ color: ch.dataset.color, name: ch.dataset.name, id: ch.dataset.id }));
+  });
+  cpool.addEventListener('dragend', () => {
+    if (DG.el) DG.el.classList.remove('dragging'); DG.el = null;
+  });
+
+  // Slots accept drop
+  slots.addEventListener('dragover', e => {
+    const sl = e.target.closest('.cslot'); if (!sl || sl.classList.contains('filled')) return;
+    e.preventDefault(); sl.classList.add('over');
+  });
+  slots.addEventListener('dragleave', e => {
+    const sl = e.target.closest('.cslot'); if (sl) sl.classList.remove('over');
+  });
+  slots.addEventListener('drop', e => {
+    e.preventDefault();
+    const sl = e.target.closest('.cslot'); if (!sl || sl.classList.contains('filled')) return;
+    sl.classList.remove('over');
+    applyColor(JSON.parse(e.dataTransfer.getData('text/plain')), parseInt(sl.dataset.slot));
+  });
+
+  // Touch
+  cpool.addEventListener('touchstart', e => {
+    const ch = e.target.closest('.cchip'); if (!ch || ch.classList.contains('selected')) return;
+    if (ST.colors.length >= 3) return;
+    e.preventDefault();
+    DG.el = ch; DG.data = { color: ch.dataset.color, name: ch.dataset.name, id: ch.dataset.id };
+    DG.clone = makeTouchClone(ch, e.touches[0]);
+  }, { passive: false });
+
+  document.addEventListener('touchmove', e => {
+    if (!DG.clone || ST.phase !== 2) return;
+    e.preventDefault(); moveTouchClone(e.touches[0]);
+    document.querySelectorAll('.cslot').forEach(sl => sl.classList.remove('over'));
+    const el = elemAtTouch(e.touches[0]);
+    const sl = el && el.closest('.cslot');
+    if (sl && !sl.classList.contains('filled')) sl.classList.add('over');
+  }, { passive: false });
+
+  document.addEventListener('touchend', e => {
+    if (!DG.clone || ST.phase !== 2) return;
+    document.querySelectorAll('.cslot').forEach(sl => sl.classList.remove('over'));
+    const el = elemAtTouch(e.changedTouches[0]);
+    const sl = el && el.closest('.cslot');
+    if (sl && !sl.classList.contains('filled') && DG.data) applyColor(DG.data, parseInt(sl.dataset.slot));
+    killTouchClone();
+  });
+}
+
+function applyColor({ color, name, id }, slotIdx) {
+  if (ST.colors.length >= 3) return;
+  if (ST.colors.find(c => c.id === id)) return; // already used
+
+  ST.colors.push({ color, name, id, slot: slotIdx });
+
+  // Mark chip as selected
+  const chip = document.querySelector(`#color-pool .cchip[data-id="${id}"]`);
+  if (chip) chip.classList.add('selected');
+
+  // Fill slot
+  const slotEl = document.querySelector(`.cslot[data-slot="${slotIdx}"]`);
+  if (slotEl) {
+    slotEl.style.background = color;
+    slotEl.classList.add('filled');
+  }
+
+  // Apply to mock UI
+  updateMockUI();
+
+  // Update dot badges
+  const dotEls = ['cd1','cd2','cd3'];
+  ST.colors.forEach((c, i) => {
+    const d = document.getElementById(dotEls[i]);
+    if (d) { d.classList.add('filled'); d.style.background = c.color; }
+  });
+  document.getElementById('color-count-txt').textContent = `${ST.colors.length} / 3`;
+
+  // Hide hint when at least 1 color applied
+  if (ST.colors.length >= 1) document.getElementById('mock-hint').classList.add('gone');
+
+  // Enable next button when at least 1 color
+  document.getElementById('btn2').disabled = false;
+  document.getElementById('btn2').textContent = `Siguiente — Fase 3: Iconos → (${ST.colors.length} color${ST.colors.length!==1?'es':''})`;
+
+  if (ST.colors.length >= 3) {
+    // Freeze remaining chips
+    document.querySelectorAll('#color-pool .cchip:not(.selected)').forEach(c => c.classList.add('frozen'));
+  }
+}
+
+function updateMockUI() {
+  const c0 = ST.colors[0] ? ST.colors[0].color : '#1e293b';
+  const c1 = ST.colors[1] ? ST.colors[1].color : c0 + '99';
+  const c2 = ST.colors[2] ? ST.colors[2].color : c0 + '55';
+  const mockUI = document.getElementById('mock-ui');
+  mockUI.style.background = c0;
+  document.getElementById('mock-bar').style.background = c1;
+  document.getElementById('mb1').style.background = c1 + 'bb';
+  document.getElementById('mb2').style.background = c2 + 'dd';
+  document.getElementById('mb3').style.background = c0 + '77';
+}
+
+document.getElementById('btn2').addEventListener('click', () => {
+  showLoading('Implementando Diseño...', 'Compilando assets — proceso irreversible', 2200, () => goPhase(3));
+});
+
+// ══════════════════════════════════════════════════
+// FASE 3 — Icons DnD
+// ══════════════════════════════════════════════════
+function initF3() {
+  const ipool = document.getElementById('icon-pool');
+  const mgrid = document.getElementById('mod-grid');
+
+  // Build module slots only for selected features
+  ipool.querySelectorAll('.ichip').forEach(ch => {
+    if (!ST.features.includes(ch.dataset.for)) ch.style.display = 'none';
+  });
+
+  ST.features.forEach(id => {
+    const info = FEAT[id];
+    const sl = document.createElement('div');
+    sl.className = 'mslot'; sl.dataset.module = id;
+    sl.innerHTML = `<div class="sicon" style="opacity:.2">${info.e}</div><div class="sname">${info.l}</div><div class="shint">Arrastra ícono</div>`;
+    mgrid.appendChild(sl);
+  });
+
+  // Desktop
+  ipool.addEventListener('dragstart', e => {
+    const ch = e.target.closest('.ichip'); if (!ch) return;
+    DG.el = ch; ch.classList.add('dragging');
+    e.dataTransfer.setData('text/plain', JSON.stringify({ id: ch.dataset.id, for: ch.dataset.for }));
+  });
+  ipool.addEventListener('dragend', () => {
+    if (DG.el) DG.el.classList.remove('dragging'); DG.el = null;
+  });
+  mgrid.addEventListener('dragover', e => {
+    const sl = e.target.closest('.mslot'); if (!sl || sl.classList.contains('filled')) return;
+    e.preventDefault(); sl.classList.add('over');
+  });
+  mgrid.addEventListener('dragleave', e => {
+    const sl = e.target.closest('.mslot'); if (sl) sl.classList.remove('over');
+  });
+  mgrid.addEventListener('drop', e => {
+    e.preventDefault();
+    const sl = e.target.closest('.mslot'); if (!sl || sl.classList.contains('filled')) return;
+    sl.classList.remove('over');
+    dropIcon(JSON.parse(e.dataTransfer.getData('text/plain')), sl);
+  });
+
+  // Touch
+  ipool.addEventListener('touchstart', e => {
+    const ch = e.target.closest('.ichip'); if (!ch || ch.classList.contains('used')) return;
+    e.preventDefault();
+    DG.el = ch; DG.data = { id: ch.dataset.id, for: ch.dataset.for };
+    DG.clone = makeTouchClone(ch, e.touches[0]);
+  }, { passive: false });
+
+  document.addEventListener('touchmove', e => {
+    if (!DG.clone || ST.phase !== 3) return;
+    e.preventDefault(); moveTouchClone(e.touches[0]);
+    document.querySelectorAll('.mslot').forEach(s => s.classList.remove('over'));
+    const el = elemAtTouch(e.touches[0]);
+    const sl = el && el.closest('.mslot');
+    if (sl && !sl.classList.contains('filled')) sl.classList.add('over');
+  }, { passive: false });
+
+  document.addEventListener('touchend', e => {
+    if (!DG.clone || ST.phase !== 3) return;
+    document.querySelectorAll('.mslot').forEach(s => s.classList.remove('over'));
+    const el = elemAtTouch(e.changedTouches[0]);
+    const sl = el && el.closest('.mslot');
+    if (sl && !sl.classList.contains('filled') && DG.data) dropIcon(DG.data, sl);
+    killTouchClone();
+  });
+}
+
+function dropIcon(data, slot) {
+  const modId = slot.dataset.module;
+  // Wrong icon flash
+  if (data.for !== modId) {
+    slot.classList.add('wrong');
+    setTimeout(() => slot.classList.remove('wrong'), 700);
+    return;
+  }
+  if (ST.icons[modId]) return;
+  ST.icons[modId] = data.id;
+
+  const info = FEAT[modId];
+  const srcChip = document.querySelector(`#icon-pool .ichip[data-id="${data.id}"]`);
+  const emo = srcChip ? srcChip.childNodes[0].textContent.trim() : info.e;
+
+  slot.classList.add('filled');
+  slot.innerHTML = `<div class="sicon">${emo}</div><div class="sname">${info.l}</div>`;
+
+  if (srcChip) srcChip.classList.add('used');
+
+  const done = Object.keys(ST.icons).length;
+  const need = ST.features.length;
+  document.getElementById('icon-count').textContent = `${done} / ${need} módulos asignados`;
+  const btn3 = document.getElementById('btn3');
+  btn3.disabled = done < need;
+  if (!btn3.disabled) btn3.textContent = `✅ Finalizar — Enviar al Cliente (${done}/${need})`;
+}
+
+document.getElementById('btn3').addEventListener('click', () => {
+  showLoading('Desplegando en Producción...', 'Entregando al cliente — proceso irreversible', 2600, () => {
+    goPhase(4); showModal();
+  });
+});
+
+// ══════════════════════════════════════════════════
+// Navigation
+// ══════════════════════════════════════════════════
+function goPhase(n) {
+  ST.phase = n;
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  if (n <= 3) document.getElementById(`screen-${n}`).classList.add('active');
+  [1,2,3,4].forEach(i => {
+    const el = document.getElementById(`nav-${i}`);
+    el.classList.remove('active','done','locked');
+    if (i < n) el.classList.add('done');
+    else if (i === n) el.classList.add('active');
+    else el.classList.add('locked');
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (n === 2) initF2();
+  if (n === 3) initF3();
+}
+
+// ══════════════════════════════════════════════════
+// Loading
+// ══════════════════════════════════════════════════
+function showLoading(title, sub, ms, cb) {
+  const ov = document.getElementById('loading');
+  document.getElementById('load-title').textContent = title;
+  document.getElementById('load-sub').textContent = sub;
+  const bar = document.getElementById('load-bar');
+  bar.style.transition = 'none'; bar.style.width = '0';
+  ov.classList.add('on');
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      bar.style.transition = `width ${ms}ms linear`;
+      bar.style.width = '100%';
+    });
+  });
+  setTimeout(() => { ov.classList.remove('on'); cb(); }, ms);
+}
+
+// ══════════════════════════════════════════════════
+// Modal
+// ══════════════════════════════════════════════════
+function showModal() {
+  document.getElementById('modal').classList.add('on');
+}
+
+function showAgile() {
+  document.getElementById('modal-body').innerHTML = `
+    <p><strong>Con metodologías ágiles (Scrum/Kanban)</strong>, el feedback del cliente se incorpora en cada <em>sprint</em> (2-4 semanas). Los cambios no reinician todo el proceso.</p>
+    <div class="stat-row"><div class="sico">💰</div><div><div class="sval" style="color:var(--gr)">1× Costo</div><div class="slbl">El costo de cambio permanece bajo durante todo el proyecto</div></div></div>
+    <div class="stat-row"><div class="sico">⚡</div><div><div class="sval" style="color:var(--gr)">Adaptable</div><div class="slbl">Los requisitos evolucionan con el negocio del cliente</div></div></div>
+    <div class="stat-row"><div class="sico">🔁</div><div><div class="sval" style="color:var(--gr)">Iterativo</div><div class="slbl">Entregas frecuentes permiten validar con el cliente cada sprint</div></div></div>
+    <div class="lesson-box"><strong>📚 Curva de Costo:</strong><br>En Waterfall el costo crece <em>exponencialmente</em>. En Agile se mantiene <em>plano</em> gracias a la entrega continua e iterativa con feedback constante.</div>
+  `;
+  document.querySelector('.modal-footer').innerHTML = `<button class="btn btn-blue" style="flex:1" onclick="restartAll()">↺ Reiniciar Demo</button>`;
+}
+
+function restartAll() {
+  // Reset state
+  ST.phase = 1; ST.features = []; ST.colors = []; ST.icons = {};
+
+  // Close modal & loading
+  document.getElementById('modal').classList.remove('on');
+  document.getElementById('loading').classList.remove('on');
+
+  // ── Fase 1: restaurar pool y zona ──
+  document.querySelectorAll('#feat-pool .fchip').forEach(ch => {
+    ch.classList.remove('used','dragging');
+    ch.style.opacity = '';
+    ch.draggable = true;
+    ch.style.cursor = '';
+  });
+  const zone1 = document.getElementById('zone-1');
+  zone1.innerHTML = '<div class="dzone-hint" id="zone1-hint">⬇ Arrastra las features aquí</div>';
+  document.getElementById('feat-count').textContent = '0 / mínimo 3 features';
+  const btn1 = document.getElementById('btn1');
+  btn1.disabled = true;
+  btn1.textContent = 'Siguiente — Fase 2: Diseño →';
+
+  // ── Fase 2: restaurar colores ──
+  document.querySelectorAll('#color-pool .cchip').forEach(ch => {
+    ch.classList.remove('selected','frozen','dragging');
+    ch.style.opacity = '';
+  });
+  document.querySelectorAll('.cslot').forEach(sl => {
+    sl.classList.remove('filled','over');
+    sl.style.background = '';
+  });
+  document.getElementById('mock-ui').style.background = '#1e293b';
+  document.getElementById('mock-bar').style.background = '';
+  ['mb1','mb2','mb3'].forEach(id => { document.getElementById(id).style.background = ''; });
+  document.getElementById('mock-hint').classList.remove('gone');
+  ['cd1','cd2','cd3'].forEach(id => {
+    const d = document.getElementById(id);
+    d.classList.remove('filled'); d.style.background = '';
+  });
+  document.getElementById('color-count-txt').textContent = '0 / 3';
+  document.getElementById('frozen-feat-preview').innerHTML = '';
+  const btn2 = document.getElementById('btn2');
+  btn2.disabled = true;
+  btn2.textContent = 'Siguiente — Fase 3: Iconos →';
+
+  // ── Fase 3: restaurar íconos y módulos ──
+  document.querySelectorAll('#icon-pool .ichip').forEach(ch => {
+    ch.classList.remove('used','dragging');
+    ch.style.display = '';
+    ch.style.opacity = '';
+    ch.draggable = true;
+  });
+  document.getElementById('mod-grid').innerHTML = '';
+  document.getElementById('icon-count').textContent = '0 módulos asignados';
+  const btn3 = document.getElementById('btn3');
+  btn3.disabled = true;
+  btn3.textContent = 'Finalizar — Enviar al Cliente →';
+
+  // ── Restaurar modal body por si se cambió a Ágil ──
+  document.getElementById('modal-body').innerHTML = `
+    <p><strong>El cliente cambió los requisitos iniciales.</strong><br>
+    Solicita un módulo de <em>Pagos con IA</em> no contemplado en la Fase 1,
+    cambios en la paleta de colores y nuevos íconos de marca.</p>
+    <div class="stat-row"><div class="sico">💸</div><div><div class="sval">100×</div><div class="slbl">Costo de corrección vs. detectarlo en Requisitos</div></div></div>
+    <div class="stat-row"><div class="sico">🔄</div><div><div class="sval">Reinicio Total</div><div class="slbl">Waterfall obliga a reiniciar desde cero ante cualquier cambio post-implementación</div></div></div>
+    <div class="stat-row"><div class="sico">🕐</div><div><div class="sval">+8 meses</div><div class="slbl">Estimación de retraso para incorporar los cambios</div></div></div>
+    <div class="lesson-box"><strong>📚 Lección — Análisis de Sistemas:</strong><br>
+    Waterfall asume requisitos perfectos y estables desde el inicio. Cada fase se "sella" sin posibilidad de modificación. Metodologías ágiles como <strong>Scrum</strong> integran el feedback en cada sprint, manteniendo el costo de cambio <strong>bajo y constante.</strong></div>
+  `;
+  document.querySelector('.modal-footer').innerHTML = `
+    <button class="btn btn-red" onclick="restartAll()">↺ Reiniciar Ciclo</button>
+    <button class="btn btn-green" onclick="showAgile()">✅ Ver Alternativa Ágil</button>
+  `;
+
+  // ── Volver a fase 1 y reinicializar DnD ──
+  goPhase(1);
+  initF1();
+}
+
+// ── Init ──
+initF1();
+</script>
+</body>
+</html>
