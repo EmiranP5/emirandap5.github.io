@@ -534,20 +534,6 @@ function initF1() {
     DG.clone = makeTouchClone(ch, e.touches[0]);
   }, { passive: false });
 
-  document.addEventListener('touchmove', e => {
-    if (!DG.clone || ST.phase !== 1) return;
-    e.preventDefault(); moveTouchClone(e.touches[0]);
-    const r = zone.getBoundingClientRect(), t = e.touches[0];
-    zone.classList.toggle('over', t.clientX>=r.left && t.clientX<=r.right && t.clientY>=r.top && t.clientY<=r.bottom);
-  }, { passive: false });
-
-  document.addEventListener('touchend', e => {
-    if (!DG.clone || ST.phase !== 1) return;
-    zone.classList.remove('over');
-    const t = e.changedTouches[0], r = zone.getBoundingClientRect();
-    if (t.clientX>=r.left && t.clientX<=r.right && t.clientY>=r.top && t.clientY<=r.bottom) addFeature(DG.data);
-    killTouchClone();
-  });
 }
 
 function addFeature(id) {
@@ -592,6 +578,10 @@ function initF2() {
     prev.appendChild(d);
   });
 
+  // Listeners — solo registrar una vez
+  if (cpool.dataset.evInit) return;
+  cpool.dataset.evInit = '1';
+
   // Desktop drag from pool
   cpool.addEventListener('dragstart', e => {
     const ch = e.target.closest('.cchip'); if (!ch || ch.classList.contains('selected')) return;
@@ -617,7 +607,7 @@ function initF2() {
     applyColor(JSON.parse(e.dataTransfer.getData('text/plain')), parseInt(sl.dataset.slot));
   });
 
-  // Touch
+  // Touch — touchstart solo (document events en initDocTouch)
   cpool.addEventListener('touchstart', e => {
     const ch = e.target.closest('.cchip'); if (!ch || ch.classList.contains('selected')) return;
     if (ST.colors.length >= 3) return;
@@ -625,24 +615,6 @@ function initF2() {
     DG.el = ch; DG.data = { color: ch.dataset.color, name: ch.dataset.name, id: ch.dataset.id };
     DG.clone = makeTouchClone(ch, e.touches[0]);
   }, { passive: false });
-
-  document.addEventListener('touchmove', e => {
-    if (!DG.clone || ST.phase !== 2) return;
-    e.preventDefault(); moveTouchClone(e.touches[0]);
-    document.querySelectorAll('.cslot').forEach(sl => sl.classList.remove('over'));
-    const el = elemAtTouch(e.touches[0]);
-    const sl = el && el.closest('.cslot');
-    if (sl && !sl.classList.contains('filled')) sl.classList.add('over');
-  }, { passive: false });
-
-  document.addEventListener('touchend', e => {
-    if (!DG.clone || ST.phase !== 2) return;
-    document.querySelectorAll('.cslot').forEach(sl => sl.classList.remove('over'));
-    const el = elemAtTouch(e.changedTouches[0]);
-    const sl = el && el.closest('.cslot');
-    if (sl && !sl.classList.contains('filled') && DG.data) applyColor(DG.data, parseInt(sl.dataset.slot));
-    killTouchClone();
-  });
 }
 
 function applyColor({ color, name, id }, slotIdx) {
@@ -709,11 +681,11 @@ function initF3() {
   const ipool = document.getElementById('icon-pool');
   const mgrid = document.getElementById('mod-grid');
 
-  // Build module slots only for selected features
+  // Siempre: actualizar visibilidad de chips y reconstruir slots
   ipool.querySelectorAll('.ichip').forEach(ch => {
-    if (!ST.features.includes(ch.dataset.for)) ch.style.display = 'none';
+    ch.style.display = ST.features.includes(ch.dataset.for) ? '' : 'none';
   });
-
+  mgrid.innerHTML = '';
   ST.features.forEach(id => {
     const info = FEAT[id];
     const sl = document.createElement('div');
@@ -721,6 +693,10 @@ function initF3() {
     sl.innerHTML = `<div class="sicon" style="opacity:.2">${info.e}</div><div class="sname">${info.l}</div><div class="shint">Arrastra ícono</div>`;
     mgrid.appendChild(sl);
   });
+
+  // Listeners — solo registrar una vez
+  if (ipool.dataset.evInit) return;
+  ipool.dataset.evInit = '1';
 
   // Desktop
   ipool.addEventListener('dragstart', e => {
@@ -745,31 +721,13 @@ function initF3() {
     dropIcon(JSON.parse(e.dataTransfer.getData('text/plain')), sl);
   });
 
-  // Touch
+  // Touch — touchstart solo (document events en initDocTouch)
   ipool.addEventListener('touchstart', e => {
     const ch = e.target.closest('.ichip'); if (!ch || ch.classList.contains('used')) return;
     e.preventDefault();
     DG.el = ch; DG.data = { id: ch.dataset.id, for: ch.dataset.for };
     DG.clone = makeTouchClone(ch, e.touches[0]);
   }, { passive: false });
-
-  document.addEventListener('touchmove', e => {
-    if (!DG.clone || ST.phase !== 3) return;
-    e.preventDefault(); moveTouchClone(e.touches[0]);
-    document.querySelectorAll('.mslot').forEach(s => s.classList.remove('over'));
-    const el = elemAtTouch(e.touches[0]);
-    const sl = el && el.closest('.mslot');
-    if (sl && !sl.classList.contains('filled')) sl.classList.add('over');
-  }, { passive: false });
-
-  document.addEventListener('touchend', e => {
-    if (!DG.clone || ST.phase !== 3) return;
-    document.querySelectorAll('.mslot').forEach(s => s.classList.remove('over'));
-    const el = elemAtTouch(e.changedTouches[0]);
-    const sl = el && el.closest('.mslot');
-    if (sl && !sl.classList.contains('filled') && DG.data) dropIcon(DG.data, sl);
-    killTouchClone();
-  });
 }
 
 function dropIcon(data, slot) {
@@ -863,6 +821,8 @@ function showAgile() {
 }
 
 function restartAll() {
+  // Limpiar cualquier drag activo antes de resetear
+  killTouchClone();
   // Reset state
   ST.phase = 1; ST.features = []; ST.colors = []; ST.icons = {};
 
@@ -936,13 +896,59 @@ function restartAll() {
     <button class="btn btn-green" onclick="showAgile()">✅ Ver Alternativa Ágil</button>
   `;
 
-  // ── Volver a fase 1 y reinicializar DnD ──
+  // ── Volver a fase 1 ──
   goPhase(1);
-  initF1();
+}
+
+// ══════════════════════════════════════════════════
+// Touch handlers a nivel documento — solo se registran UNA VEZ
+// ══════════════════════════════════════════════════
+function initDocTouch() {
+  document.addEventListener('touchmove', e => {
+    if (!DG.clone) return;
+    e.preventDefault(); moveTouchClone(e.touches[0]);
+    if (ST.phase === 1) {
+      const zone = document.getElementById('zone-1');
+      const r = zone.getBoundingClientRect(), t = e.touches[0];
+      zone.classList.toggle('over', t.clientX>=r.left && t.clientX<=r.right && t.clientY>=r.top && t.clientY<=r.bottom);
+    } else if (ST.phase === 2) {
+      document.querySelectorAll('.cslot').forEach(sl => sl.classList.remove('over'));
+      const el = elemAtTouch(e.touches[0]);
+      const sl = el && el.closest('.cslot');
+      if (sl && !sl.classList.contains('filled')) sl.classList.add('over');
+    } else if (ST.phase === 3) {
+      document.querySelectorAll('.mslot').forEach(s => s.classList.remove('over'));
+      const el = elemAtTouch(e.touches[0]);
+      const sl = el && el.closest('.mslot');
+      if (sl && !sl.classList.contains('filled')) sl.classList.add('over');
+    }
+  }, { passive: false });
+
+  document.addEventListener('touchend', e => {
+    if (!DG.clone) return;
+    if (ST.phase === 1) {
+      const zone = document.getElementById('zone-1');
+      zone.classList.remove('over');
+      const t = e.changedTouches[0], r = zone.getBoundingClientRect();
+      if (t.clientX>=r.left && t.clientX<=r.right && t.clientY>=r.top && t.clientY<=r.bottom) addFeature(DG.data);
+    } else if (ST.phase === 2) {
+      document.querySelectorAll('.cslot').forEach(sl => sl.classList.remove('over'));
+      const el = elemAtTouch(e.changedTouches[0]);
+      const sl = el && el.closest('.cslot');
+      if (sl && !sl.classList.contains('filled') && DG.data) applyColor(DG.data, parseInt(sl.dataset.slot));
+    } else if (ST.phase === 3) {
+      document.querySelectorAll('.mslot').forEach(s => s.classList.remove('over'));
+      const el = elemAtTouch(e.changedTouches[0]);
+      const sl = el && el.closest('.mslot');
+      if (sl && !sl.classList.contains('filled') && DG.data) dropIcon(DG.data, sl);
+    }
+    killTouchClone();
+  });
 }
 
 // ── Init ──
 initF1();
+initDocTouch();
 </script>
 </body>
 </html>
